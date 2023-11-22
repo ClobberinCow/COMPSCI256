@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <TensorFlowLite_ESP32.h>
 /* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
@@ -33,10 +32,8 @@ limitations under the License.
 #include <esp_timer.h>
 #include <esp_log.h>
 #include "esp_main.h"
-#include "esp_cli.h"
 
 // Globals, used for compatibility with Arduino-style sketches.
-int picnum = 0;
 namespace {
 tflite::ErrorReporter* error_reporter = nullptr;
 const tflite::Model* model = nullptr;
@@ -60,17 +57,6 @@ constexpr int kTensorArenaSize = 81 * 1024 + scratchBufSize;
 static uint8_t *tensor_arena;//[kTensorArenaSize]; // Maybe we should move this to external
 }  // namespace
 
-#if defined(COLLECT_CPU_STATS)
-  long long total_time = 0;
-  long long start_time = 0;
-  extern long long softmax_total_time;
-  extern long long dc_total_time;
-  extern long long conv_total_time;
-  extern long long fc_total_time;
-  extern long long pooling_total_time;
-  extern long long add_total_time;
-  extern long long mul_total_time;
-#endif
 // The name of this function is important for Arduino compatibility.
 void setup() {
   // Set up logging. Google style is to avoid globals or statics because of
@@ -131,7 +117,6 @@ void setup() {
 
   // Initialize Camera
   TfLiteStatus init_status = InitCamera(error_reporter);
-  esp_cli_init();
   if (init_status != kTfLiteOk) {
     TF_LITE_REPORT_ERROR(error_reporter, "InitCamera failed\n");
     return;
@@ -141,35 +126,44 @@ void setup() {
 // The name of this function is important for Arduino compatibility.
 void loop() {
   // Get image from provider.
-  // if (kTfLiteOk != GetImage(error_reporter, kNumCols, kNumRows, kNumChannels,
-  //                           input->data.int8)) {
-  //   //TF_LITE_REPORT_ERROR(error_reporter, "Image capture failed.");
-  // }
+  if (kTfLiteOk != GetImage(error_reporter, kNumCols, kNumRows, kNumChannels,
+                            input->data.int8)) {
+    TF_LITE_REPORT_ERROR(error_reporter, "Image capture failed.");
+  }
 
   // Run the model on this input and make sure it succeeds.
-  // if (kTfLiteOk != interpreter->Invoke()) {
-  //   TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed.");
-  // }
+  if (kTfLiteOk != interpreter->Invoke()) {
+    TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed.");
+  }
 
-  // TfLiteTensor* output = interpreter->output(0);
+  TfLiteTensor* output = interpreter->output(0);
 
-  // // Process the inference results.
-  // int8_t person_score = output->data.uint8[kPersonIndex];
-  // int8_t no_person_score = output->data.uint8[kNotAPersonIndex];
+  // Process the inference results.
+  int8_t person_score = output->data.uint8[kPersonIndex];
+  int8_t no_person_score = output->data.uint8[kNotAPersonIndex];
 
-  // float person_score_f =
-  //     (person_score - output->params.zero_point) * output->params.scale;
-  // float no_person_score_f =
-  //     (no_person_score - output->params.zero_point) * output->params.scale;
-  
-  inference_cli_handler_1(0);
+  float person_score_f =
+      (person_score - output->params.zero_point) * output->params.scale;
+  float no_person_score_f =
+      (no_person_score - output->params.zero_point) * output->params.scale;
+
   // Respond to detection
-  // RespondToDetection(error_reporter, person_score_f, no_person_score_f);
+  RespondToDetection(error_reporter, person_score_f, no_person_score_f);
   vTaskDelay(1); // to avoid watchdog trigger
 }
 
+#if defined(COLLECT_CPU_STATS)
+  long long total_time = 0;
+  long long start_time = 0;
+  extern long long softmax_total_time;
+  extern long long dc_total_time;
+  extern long long conv_total_time;
+  extern long long fc_total_time;
+  extern long long pooling_total_time;
+  extern long long add_total_time;
+  extern long long mul_total_time;
+#endif
 
-// run_inferencevoid run_inference(void *ptr)
 void run_inference(void *ptr) {
   /* Convert from uint8 picture data to int8 */
   for (int i = 0; i < kNumCols * kNumRows; i++) {
@@ -183,9 +177,8 @@ void run_inference(void *ptr) {
   if (kTfLiteOk != interpreter->Invoke()) {
     error_reporter->Report("Invoke failed.");
   }
-  long long total_time = (esp_timer_get_time() - start_time);
-  printf("Total time = %lld\n", total_time / 1000);
-#if !defined(COLLECT_CPU_STATS)
+
+#if defined(COLLECT_CPU_STATS)
   long long total_time = (esp_timer_get_time() - start_time);
   printf("Total time = %lld\n", total_time / 1000);
   //printf("Softmax time = %lld\n", softmax_total_time / 1000);
@@ -217,6 +210,5 @@ void run_inference(void *ptr) {
       (person_score - output->params.zero_point) * output->params.scale;
   float no_person_score_f =
       (no_person_score - output->params.zero_point) * output->params.scale;
-  
   RespondToDetection(error_reporter, person_score_f, no_person_score_f);
 }
