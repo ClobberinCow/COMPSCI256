@@ -222,6 +222,8 @@ void run_inference(void *ptr) {
   float no_person_score_f =
       (no_person_score - output->params.zero_point) * output->params.scale;
   float scratch = 0;
+  printf("Zero Point: %d \r\n", output->params.zero_point);
+  printf("Scale: %f \r\n", output->params.scale);
   for (int i = 0; i < 28; i++)
   {
     scratch = (output->data.uint8[i] - output->params.zero_point) * output->params.scale;
