@@ -15,6 +15,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+/* Using this branch to check CICIDS model*/
+
+
 #include "main_functions.h"
 
 #include "detection_responder.h"
@@ -34,7 +37,7 @@ limitations under the License.
 #include <esp_log.h>
 #include "esp_main.h"
 #include "esp_cli.h"
-#include <pics.h>
+#include <CICIDS.h>
 
 // Globals, used for compatibility with Arduino-style sketches.
 int picnum = 0;
@@ -175,9 +178,9 @@ void loop() {
 // run_inferencevoid run_inference(void *ptr)
 void run_inference(void *ptr) {
   /* Convert from uint8 picture data to int8 */
-  for (int i = 0; i < 784; i++)
+  for (int i = 0; i < 79; i++)
   {
-      input->data.int8[i] = pic1[i];
+      input->data.int8[i] = benign[0][i];
   }
   // for (int i = 0; i < kNumCols * kNumRows; i++) {
   //   input->data.int8[i] = ((uint8_t *) ptr)[i] ^ 0x80;
@@ -217,7 +220,8 @@ void run_inference(void *ptr) {
   // // Process the inference results.
   int8_t person_score = output->data.uint8[kPersonIndex];
   int8_t no_person_score = output->data.uint8[kNotAPersonIndex];
-
+  float attack = output->data.f[0];
+  printf("Value is: %d", attack);
   float person_score_f =
       (person_score - output->params.zero_point) * output->params.scale;
   float no_person_score_f =
