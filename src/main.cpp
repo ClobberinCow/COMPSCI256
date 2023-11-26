@@ -178,22 +178,51 @@ void loop() {
 // run_inferencevoid run_inference(void *ptr)
 void run_inference(void *ptr) {
   /* Convert from uint8 picture data to int8 */
-  for (int i = 0; i < 79; i++)
+  #if defined(COLLECT_CPU_STATS)
+  long long start_time = esp_timer_get_time();
+  #endif
+  
+  for (int j = 0; j < 5; j++)
   {
-      input->data.int8[i] = benign[0][i];
-  }
+    for (int i = 0; i < 79; i++)
+    {
+        input->data.f[i] = attack[j][i];
+    }
   // for (int i = 0; i < kNumCols * kNumRows; i++) {
   //   input->data.int8[i] = ((uint8_t *) ptr)[i] ^ 0x80;
   // }
 
-#if defined(COLLECT_CPU_STATS)
-  long long start_time = esp_timer_get_time();
-#endif
+
   // Run the model on this input and make sure it succeeds.
   if (kTfLiteOk != interpreter->Invoke()) {
     error_reporter->Report("Invoke failed.");
   }
-#if defined(COLLECT_CPU_STATS)
+
+
+  TfLiteTensor* output = interpreter->output(0);
+  
+  // // Process the inference results.
+  int8_t person_score = output->data.uint8[kPersonIndex];
+  int8_t no_person_score = output->data.uint8[kNotAPersonIndex];
+  float person_score_f =
+      (person_score - output->params.zero_point) * output->params.scale;
+  float no_person_score_f =
+      (no_person_score - output->params.zero_point) * output->params.scale;
+
+  if (output->data.f[0] > 0.6)
+  {
+    printf("Benign with %f prob\r\n", output->data.f[0]);
+  }
+  else 
+  {
+    printf("Benign with %f prob\r\n", output->data.f[0]);
+    for (int i = 0; i < 15; i++)
+    {
+      printf("label %i: %f \r\n", i, output->data.f[i]);
+    }
+  }
+  }
+  #if defined(COLLECT_CPU_STATS)
   long long total_time = (esp_timer_get_time() - start_time);
   printf("Total time = %lld\n", total_time / 1000);
   //printf("Softmax time = %lld\n", softmax_total_time / 1000);
@@ -214,23 +243,5 @@ void run_inference(void *ptr) {
   // add_total_time = 0;
   // mul_total_time = 0;
 #endif
-
-  TfLiteTensor* output = interpreter->output(0);
-  
-  // // Process the inference results.
-  int8_t person_score = output->data.uint8[kPersonIndex];
-  int8_t no_person_score = output->data.uint8[kNotAPersonIndex];
-  float attack = output->data.f[0];
-  printf("Value is: %d", attack);
-  float person_score_f =
-      (person_score - output->params.zero_point) * output->params.scale;
-  float no_person_score_f =
-      (no_person_score - output->params.zero_point) * output->params.scale;
-
-  // for (int i = 0; i < 10; i++)
-  // {
-  //   printf("label %i: %d \r\n", i, output->data.[i]);
-  // }
-  
-  RespondToDetection(error_reporter, person_score_f, no_person_score_f);
+  // RespondToDetection(error_reporter, person_score_f, no_person_score_f);
 }
