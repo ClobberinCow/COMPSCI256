@@ -93,7 +93,7 @@ static int mem_dump_cli_handler(int argc, char *argv[])
     printf("Largest Free Block\t%d\t\t%d\n",
            heap_caps_get_largest_free_block(MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL),
            heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
-    printf("Min. Ever Free Size\t%d\t\t%d\n",
+    ESP_LOGE(TAG, "Min. Ever Free Size\t%d\t\t%d\n",
            heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL),
            heap_caps_get_minimum_free_size(MALLOC_CAP_SPIRAM));
     return 0;
@@ -151,11 +151,11 @@ static esp_console_cmd_t diag_cmds[] = {
         .help = "",
         .func = mem_dump_cli_handler,
     },
-    {
-        .command = "task-dump",
-        .help = "",
-        .func = task_dump_cli_handler,
-    },
+    // {
+    //     .command = "task-dump",
+    //     .help = "",
+    //     .func = task_dump_cli_handler,
+    // },
     {
         .command = "cpu-dump",
         .help = "",
@@ -187,6 +187,7 @@ static void esp_cli_task(void *arg)
     };
 
     esp_console_init(&console_config);
+    esp_cli_register_cmds();
     esp_console_register_help_command();
 
     while (!stop) {
@@ -219,9 +220,11 @@ static void esp_cli_task(void *arg)
         }
         /* Remove the truncating \r\n */
         linebuf[strlen((char *)linebuf) - 1] = '\0';
+        ESP_LOGE(TAG, "Cmd input: %s", linebuf);
         ret = esp_console_run((char *) linebuf, &cmd_ret);
+        ESP_LOGE(TAG, "Cmd response: %d", ret);
         if (ret < 0) {
-            printf("%s: Console dispatcher error\n", TAG);
+            ESP_LOGE(TAG, "%s: Console dispatcher error\n", TAG);
             break;
         }
     }
