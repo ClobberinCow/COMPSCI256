@@ -174,18 +174,20 @@ void loop() {
 
 // run_inferencevoid run_inference(void *ptr)
 void run_inference(void *ptr) {
-  /* Convert from uint8 picture data to int8 */
+  /* Convert image to  */
+  long long start_time = esp_timer_get_time();
   for (int i = 0; i < 784; i++)
   {
-      input->data.f64[i] = (float)pic1[i]/255.0;
+      input->data.f[i] = (255.0 - (float)pic1[i]) /255.0;
+      //input->data.f[i] = (float)pic1[i];
   }
   // for (int i = 0; i < kNumCols * kNumRows; i++) {
   //   input->data.int8[i] = ((uint8_t *) ptr)[i] ^ 0x80;
   // }
 
-#if defined(COLLECT_CPU_STATS)
-  long long start_time = esp_timer_get_time();
-#endif
+// #if defined(COLLECT_CPU_STATS)
+//   long long start_time = esp_timer_get_time();
+// #endif
   // Run the model on this input and make sure it succeeds.
   if (kTfLiteOk != interpreter->Invoke()) {
     error_reporter->Report("Invoke failed.");
@@ -222,12 +224,20 @@ void run_inference(void *ptr) {
   float no_person_score_f =
       (no_person_score - output->params.zero_point) * output->params.scale;
   float scratch = 0;
-  for (int i = 0; i < 28; i++)
+  int label = 0;
+  // printf("Zero Point: %d \r\n", output->params.zero_point);
+  // printf("Scale: %f \r\n", output->params.scale);
+  for (int i = 0; i < 10; i++)
   {
-    scratch = (output->data.uint8[i] - output->params.zero_point) * output->params.scale;
-    printf("uint8 label %i: %d \r\n", i, output->data.uint8[i]);
-    printf("f64 label %i: %f \r\n", i, output->data.f16[i]);
+    if (abs(output->data.f[i]) > scratch)
+    {
+      scratch = abs(output->data.f[i]);
+      label = i;
+    }
+    // printf("uint8 label %i: %d \r\n", i, output->data.uint8[i]);
+    // printf("f label %i: %g \r\n", i, output->data.f[i]);
   }
-  
-  RespondToDetection(error_reporter, person_score_f, no_person_score_f);
+  printf("Expected Label is %d \r\n", label);
+
+  // RespondToDetection(error_reporter, person_score_f, no_person_score_f);
 }
