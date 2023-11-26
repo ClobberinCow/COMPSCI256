@@ -177,7 +177,7 @@ void run_inference(void *ptr) {
   /* Convert from uint8 picture data to int8 */
   for (int i = 0; i < 784; i++)
   {
-      input->data.int8[i] = pic1[i];
+      input->data.f64[i] = (float)pic1[i]/255.0;
   }
   // for (int i = 0; i < kNumCols * kNumRows; i++) {
   //   input->data.int8[i] = ((uint8_t *) ptr)[i] ^ 0x80;
@@ -213,7 +213,6 @@ void run_inference(void *ptr) {
 #endif
 
   TfLiteTensor* output = interpreter->output(0);
-  
   // // Process the inference results.
   int8_t person_score = output->data.uint8[kPersonIndex];
   int8_t no_person_score = output->data.uint8[kNotAPersonIndex];
@@ -222,11 +221,13 @@ void run_inference(void *ptr) {
       (person_score - output->params.zero_point) * output->params.scale;
   float no_person_score_f =
       (no_person_score - output->params.zero_point) * output->params.scale;
-
-  // for (int i = 0; i < 10; i++)
-  // {
-  //   printf("label %i: %d \r\n", i, output->data.[i]);
-  // }
+  float scratch = 0;
+  for (int i = 0; i < 28; i++)
+  {
+    scratch = (output->data.uint8[i] - output->params.zero_point) * output->params.scale;
+    printf("uint8 label %i: %d \r\n", i, output->data.uint8[i]);
+    printf("f64 label %i: %f \r\n", i, output->data.f16[i]);
+  }
   
   RespondToDetection(error_reporter, person_score_f, no_person_score_f);
 }
