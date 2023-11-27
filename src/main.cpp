@@ -34,7 +34,7 @@ limitations under the License.
 #include <esp_log.h>
 #include "esp_main.h"
 #include "esp_cli.h"
-#include <pics.h>
+#include <picdat.h>
 
 // Globals, used for compatibility with Arduino-style sketches.
 int picnum = 0;
@@ -176,9 +176,11 @@ void loop() {
 void run_inference(void *ptr) {
   /* Convert image to  */
   long long start_time = esp_timer_get_time();
+  for (int j = 0; j < 5; j++)
+  {
   for (int i = 0; i < 784; i++)
   {
-      input->data.f[i] = (255.0 - (float)pic1[i]) /255.0;
+      input->data.f[i] = (255.0 - (float)pics[j][i]) /255.0;
       //input->data.f[i] = (float)pic1[i];
   }
   // for (int i = 0; i < kNumCols * kNumRows; i++) {
@@ -192,7 +194,35 @@ void run_inference(void *ptr) {
   if (kTfLiteOk != interpreter->Invoke()) {
     error_reporter->Report("Invoke failed.");
   }
-#if defined(COLLECT_CPU_STATS)
+
+
+  TfLiteTensor* output = interpreter->output(0);
+  // // Process the inference results.
+  int8_t person_score = output->data.uint8[kPersonIndex];
+  int8_t no_person_score = output->data.uint8[kNotAPersonIndex];
+
+  float person_score_f =
+      (person_score - output->params.zero_point) * output->params.scale;
+  float no_person_score_f =
+      (no_person_score - output->params.zero_point) * output->params.scale;
+  float scratch = 0;
+  int label = 0;
+  // printf("Zero Point: %d \r\n", output->params.zero_point);
+  // printf("Scale: %f \r\n", output->params.scale);
+  for (int i = 0; i < 10; i++)
+  {
+    if (output->data.f[i] > scratch)
+    {
+      scratch = output->data.f[i];
+      label = i;
+    }
+    // printf("uint8 label %i: %d \r\n", i, output->data.uint8[i]);
+    printf("f label %i: %f \r\n", i, output->data.f[i]);
+  }
+  printf("Expected Label is %d \r\n", label);
+  printf("Actualy Label: %d \r\n", labels[j]);
+  }
+  #if defined(COLLECT_CPU_STATS)
   long long total_time = (esp_timer_get_time() - start_time);
   printf("Total time = %lld\n", total_time / 1000);
   //printf("Softmax time = %lld\n", softmax_total_time / 1000);
@@ -212,32 +242,6 @@ void run_inference(void *ptr) {
   // pooling_total_time = 0;
   // add_total_time = 0;
   // mul_total_time = 0;
-#endif
-
-  TfLiteTensor* output = interpreter->output(0);
-  // // Process the inference results.
-  int8_t person_score = output->data.uint8[kPersonIndex];
-  int8_t no_person_score = output->data.uint8[kNotAPersonIndex];
-
-  float person_score_f =
-      (person_score - output->params.zero_point) * output->params.scale;
-  float no_person_score_f =
-      (no_person_score - output->params.zero_point) * output->params.scale;
-  float scratch = 0;
-  int label = 0;
-  // printf("Zero Point: %d \r\n", output->params.zero_point);
-  // printf("Scale: %f \r\n", output->params.scale);
-  for (int i = 0; i < 10; i++)
-  {
-    if (abs(output->data.f[i]) > scratch)
-    {
-      scratch = abs(output->data.f[i]);
-      label = i;
-    }
-    // printf("uint8 label %i: %d \r\n", i, output->data.uint8[i]);
-    // printf("f label %i: %g \r\n", i, output->data.f[i]);
-  }
-  printf("Expected Label is %d \r\n", label);
-
+  #endif
   // RespondToDetection(error_reporter, person_score_f, no_person_score_f);
 }
