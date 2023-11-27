@@ -181,8 +181,9 @@ void run_inference(void *ptr) {
   #if defined(COLLECT_CPU_STATS)
   long long start_time = esp_timer_get_time();
   #endif
-  
-  for (int j = 0; j < 5; j++)
+  int benign_count = 0;
+  int atk_count = 0;
+  for (int j = 0; j < 99; j++)
   {
     for (int i = 0; i < 79; i++)
     {
@@ -212,19 +213,31 @@ void run_inference(void *ptr) {
   if (output->data.f[0] > 0.6)
   {
     printf("Benign with %f prob\r\n", output->data.f[0]);
+    benign_count ++;
   }
   else 
   {
-    printf("Benign with %f prob\r\n", output->data.f[0]);
-    for (int i = 0; i < 15; i++)
+    // printf("Benign with %f prob\r\n", output->data.f[0]);
+    atk_count ++;
+    for (int c = 0; c < 15; c++)
     {
-      printf("label %i: %f \r\n", i, output->data.f[i]);
+      if (output->data.f[c] > 0.5)
+      {
+        printf("label %i: %f \r\n", c, output->data.f[c]);
+      }
     }
   }
   }
   #if defined(COLLECT_CPU_STATS)
   long long total_time = (esp_timer_get_time() - start_time);
   printf("Total time = %lld\n", total_time / 1000);
+
+  printf("Benign Count: %i \r\n", benign_count);
+  printf("Attack Count: %i \r\n", atk_count);
+
+  float accuracy = benign_count / 100;
+  printf("Accuracy = %f", accuracy);
+
   //printf("Softmax time = %lld\n", softmax_total_time / 1000);
   // printf("FC time = %lld\n", fc_total_time / 1000);
   // printf("DC time = %lld\n", dc_total_time / 1000);
