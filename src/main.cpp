@@ -34,7 +34,6 @@ limitations under the License.
 #include <esp_log.h>
 #include "esp_main.h"
 #include "esp_cli.h"
-#include <picdat.h>
 
 // Globals, used for compatibility with Arduino-style sketches.
 int picnum = 0;
@@ -106,14 +105,26 @@ void setup() {
   //
   // tflite::AllOpsResolver resolver;
   // NOLINTNEXTLINE(runtime-global-variables)
-  static tflite::MicroMutableOpResolver<6> micro_op_resolver;
+  static tflite::MicroMutableOpResolver<19> micro_op_resolver;
   micro_op_resolver.AddAveragePool2D();
   micro_op_resolver.AddConv2D();
   micro_op_resolver.AddDepthwiseConv2D();
   micro_op_resolver.AddReshape();
   micro_op_resolver.AddSoftmax();
   micro_op_resolver.AddFullyConnected();
-
+  micro_op_resolver.AddExpandDims();
+  micro_op_resolver.AddSqueeze();
+  micro_op_resolver.AddAdd();
+  micro_op_resolver.AddMul();
+  micro_op_resolver.AddShape();
+  micro_op_resolver.AddStridedSlice();
+  micro_op_resolver.AddFloorMod();
+  micro_op_resolver.AddSub();
+  micro_op_resolver.AddPack();
+  micro_op_resolver.AddSpaceToBatchNd();
+  micro_op_resolver.AddBatchToSpaceNd();
+  micro_op_resolver.AddGather();
+  micro_op_resolver.AddReduceMax();
   // Build an interpreter to run the model with.
   // NOLINTNEXTLINE(runtime-global-variables)
   static tflite::MicroInterpreter static_interpreter(
@@ -180,7 +191,7 @@ void run_inference(void *ptr) {
   {
   for (int i = 0; i < 784; i++)
   {
-      input->data.f[i] = (255.0 - (float)pics[j][i]) /255.0;
+      // input->data.f[i] = (255.0 - (float)pics[j][i]) /255.0;
       //input->data.f[i] = (float)pic1[i];
   }
   // for (int i = 0; i < kNumCols * kNumRows; i++) {
@@ -220,7 +231,7 @@ void run_inference(void *ptr) {
     printf("f label %i: %f \r\n", c, output->data.f[c]);
   }
   printf("Inferred Label is %d \r\n", label);
-  printf("Actual Label: %d \r\n", labels[j]);
+  // printf("Actual Label: %d \r\n", labels[j]);
   }
   #if defined(COLLECT_CPU_STATS)
   long long total_time = (esp_timer_get_time() - start_time);
