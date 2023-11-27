@@ -176,7 +176,7 @@ void loop() {
 void run_inference(void *ptr) {
   /* Convert image to  */
   long long start_time = esp_timer_get_time();
-  for (int j = 0; j < 5; j++)
+  for (int j = 0; j < 50; j++)
   {
   for (int i = 0; i < 784; i++)
   {
@@ -209,18 +209,18 @@ void run_inference(void *ptr) {
   int label = 0;
   // printf("Zero Point: %d \r\n", output->params.zero_point);
   // printf("Scale: %f \r\n", output->params.scale);
-  for (int i = 0; i < 10; i++)
+  for (int c = 0; c < 10; c++)
   {
-    if (output->data.f[i] > scratch)
+    if (output->data.f[c] > scratch)
     {
-      scratch = output->data.f[i];
-      label = i;
+      scratch = output->data.f[c];
+      label = c;
     }
     // printf("uint8 label %i: %d \r\n", i, output->data.uint8[i]);
-    printf("f label %i: %f \r\n", i, output->data.f[i]);
+    printf("f label %i: %f \r\n", c, output->data.f[c]);
   }
-  printf("Expected Label is %d \r\n", label);
-  printf("Actualy Label: %d \r\n", labels[j]);
+  printf("Inferred Label is %d \r\n", label);
+  printf("Actual Label: %d \r\n", labels[j]);
   }
   #if defined(COLLECT_CPU_STATS)
   long long total_time = (esp_timer_get_time() - start_time);
