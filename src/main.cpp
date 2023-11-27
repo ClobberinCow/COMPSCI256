@@ -38,6 +38,8 @@ limitations under the License.
 
 // Globals, used for compatibility with Arduino-style sketches.
 int picnum = 0;
+long long cycle_start = 0;
+long long cycles = 0;
 namespace {
 tflite::ErrorReporter* error_reporter = nullptr;
 const tflite::Model* model = nullptr;
@@ -143,32 +145,21 @@ void setup() {
 
 // The name of this function is important for Arduino compatibility.
 void loop() {
-  // Get image from provider.
-  // if (kTfLiteOk != GetImage(error_reporter, kNumCols, kNumRows, kNumChannels,
-  //                           input->data.int8)) {
-  //   TF_LITE_REPORT_ERROR(error_reporter, "Image capture failed.");
-  // }
 
-  // Run the model on this input and make sure it succeeds.
-  // if (kTfLiteOk != interpreter->Invoke()) {
-  //   TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed.");
-  // }
+  if (cycles == 0)
+  {
+    cycle_start = esp_timer_get_time();
+  }
 
-  // TfLiteTensor* output = interpreter->output(0);
-
-  // // Process the inference results.
-  // int8_t person_score = output->data.uint8[kPersonIndex];
-  // int8_t no_person_score = output->data.uint8[kNotAPersonIndex];
-
-  // float person_score_f =
-  //     (person_score - output->params.zero_point) * output->params.scale;
-  // float no_person_score_f =
-  //     (no_person_score - output->params.zero_point) * output->params.scale;
-  
-  // inference_cli_handler_1(0);
-  // Respond to detection
-  // RespondToDetection(error_reporter, person_score_f, no_person_score_f);
-  vTaskDelay(150); // to avoid watchdog trigger
+  vTaskDelay(5); // to avoid watchdog trigger
+  cycles ++;
+  if (cycles > 1000)
+  {
+    long long avgtime = esp_timer_get_time() - cycle_start;
+    avgtime = avgtime / 1000000;
+    printf("Avg time is: %lld\r\n", avgtime);
+    cycles = 0;
+  }
 }
 
 

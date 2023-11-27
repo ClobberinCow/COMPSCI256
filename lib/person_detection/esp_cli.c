@@ -177,7 +177,6 @@ static void esp_cli_task(void *arg)
     esp_err_t ret;
     QueueHandle_t uart_queue;
     uart_event_t event;
-
     ESP_LOGE(TAG, "Initialising UART on port %d", uart_num);
     uart_driver_install(uart_num, 256, 0, 8, &uart_queue, 0);
     /* Initialize the console */
@@ -227,6 +226,7 @@ static void esp_cli_task(void *arg)
             ESP_LOGE(TAG, "%s: Console dispatcher error\n", TAG);
             break;
         }
+
     }
     ESP_LOGE(TAG, "Stopped CLI");
     vTaskDelete(NULL);
