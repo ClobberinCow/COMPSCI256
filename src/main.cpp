@@ -175,9 +175,8 @@ void loop() {
 // run_inferencevoid run_inference(void *ptr)
 void run_inference(void *ptr) {
   /* Convert from uint8 picture data to int8 */
-  for (int i = 0; i < 784; i++)
-  {
-      input->data.f64[i] = (float)pic1[i]/255.0;
+  for (int i = 0; i < kNumCols * kNumRows; i++) {
+    input->data.int8[i] = ((uint8_t *) ptr)[i] ^ 0x80;
   }
   // for (int i = 0; i < kNumCols * kNumRows; i++) {
   //   input->data.int8[i] = ((uint8_t *) ptr)[i] ^ 0x80;
@@ -220,16 +219,22 @@ void run_inference(void *ptr) {
   float person_score_f =
       (person_score - output->params.zero_point) * output->params.scale;
   float no_person_score_f =
-      (no_person_score - output->params.zero_point) * output->params.scale;
-  float scratch = 0;
+      (no_person_score - output->params.zero_point) * output->params.scale; 
   printf("Zero Point: %d \r\n", output->params.zero_point);
   printf("Scale: %f \r\n", output->params.scale);
-  for (int i = 0; i < 28; i++)
-  {
-    scratch = (output->data.uint8[i] - output->params.zero_point) * output->params.scale;
-    printf("uint8 label %i: %d \r\n", i, output->data.uint8[i]);
-    printf("f64 label %i: %f \r\n", i, output->data.f16[i]);
-  }
   
   RespondToDetection(error_reporter, person_score_f, no_person_score_f);
 }
+
+/*
+image0: A person
+image1: A dog
+image2: A person
+image3: A Monkey
+image4: A person
+image5: A cat
+image6: A person (not in focus)
+image7: Portrait of a person
+image8: A person
+image9: A person
+*/
